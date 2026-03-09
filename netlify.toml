@@ -7,6 +7,11 @@
   status = 200
 
 [[redirects]]
+  from = "/index.html"
+  to = "/network.html"
+  status = 301
+
+[[redirects]]
   from = "/"
   to = "/home.html"
   status = 200
