@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fragmenta</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;500&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <link rel="stylesheet" href="style/style_home.css" />
+</head>
+<body data-page="1">
+  <div id="bg"></div>
+  <div id="cursorDot"></div>
+
+  <!-- Sezione 1: Logo -->
+  <div class="section" id="section1">
+    <div class="brand-wrapper">
+      <img src="img_site/logo.svg" alt="Logo Fragmenta" class="main-logo" />
+      <p class="subtitle">Un'indagine sul modo frammentario con cui misuriamo e ricordiamo il terremoto.</p>
+    </div>
+  </div>
+
+  <!-- Sezione 2: Racconto -->
+  <div class="section" id="section2">
+    <div class="text-block">
+      <span class="label">Memorie frammentate</span>
+      <p class="main-text">
+        I terremoti storici sopravvivono
+        come sistemi eterogenei di tracce:
+        misure, testimonianze, immagini,
+        cartografie, cataloghi.<br/>
+          <span class="divider"></span>
+        Ogni traccia appartiene a un regime diverso
+        di registrazione e interpretazione.
+        L’archivio non è un racconto continuo,
+        ma una costellazione di frammenti.
+      </p>
+      <span class="caption">Archivio sismico italiano — 436 a.C. · 2025</span>
+    </div>
+  </div>
+
+  <!-- UI fisso -->
+  <button id="backBtn" aria-label="Torna indietro">
+    <span class="material-symbols-outlined">expand_less</span>
+    <span>Indietro</span>
+  </button>
+
+  <button id="themeToggle" aria-label="Cambia tema">
+    <span class="material-symbols-outlined icon-sun">light_mode</span>
+    <span class="material-symbols-outlined icon-moon">dark_mode</span>
+  </button>
+
+  <button class="nav-btn" id="nextBtn">
+    <span>IL PROGETTO</span>
+    <span class="material-symbols-outlined">expand_more</span>
+  </button>
+
+  <button class="nav-btn" id="archiveBtn">
+    <span>L'ARCHIVIO</span>
+    <span class="material-symbols-outlined">expand_more</span>
+  </button>
+
+  <script type="module" src="js/main_home.js"></script>
+</body>
+</html>

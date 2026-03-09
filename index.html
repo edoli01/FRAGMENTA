@@ -1,0 +1,129 @@
+﻿<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Fragmenta — Costellazione Sismica</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400&display=swap" />
+  <link rel="stylesheet" href="style/style_network.css" />
+  <script>
+    if (/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      window.location.replace("mobile.html");
+    }
+  </script>
+</head>
+<body data-theme="dark">
+
+  <!-- Header -->
+  <header class="topbar">
+    <div class="brand">
+     <a href="home.html">
+        <img src="img_site/logo.svg" alt="Fragmenta" class="brand-logo" />
+      </a>
+      <span class="brand-sep">—</span>
+      <span class="brand-sub">Memorie frammentate</span>
+    </div>
+    <nav class="controls">
+      <button id="btnMode" class="btn" title="Cambia modalità vista">
+        <span class="btn-label" id="modeLabel">GEO</span>
+      </button>
+      <button id="btnTheme" class="btn" title="Tema">
+        <span id="themeIcon">○</span>
+      </button>
+      <button id="btnReset" class="btn">Reset</button>
+    </nav>
+  </header>
+
+  <!-- Canvas -->
+  <main class="stage">
+    <canvas id="view"></canvas>
+
+    <!-- Tooltip -->
+    <div id="tooltip" class="tooltip" aria-hidden="true"></div>
+
+    <!-- Panel -->
+    <aside id="panel" class="panel" aria-hidden="true">
+      <div class="panel-header">
+        <div class="panel-header-top">
+          <span class="panel-tag">Evento selezionato</span>
+          <button id="btnClose" class="btn-close" title="Chiudi">✕</button>
+        </div>
+        <h2 id="pTitle" class="p-title">—</h2>
+        <div id="pMeta" class="p-meta"></div>
+      </div>
+
+      <div class="panel-body">
+
+        <div class="p-stats" id="pStats"></div>
+
+        <div class="p-section">
+          <div class="p-label">Connessioni per località in comune</div>
+          <div id="pNeighbors" class="p-list"></div>
+        </div>
+
+        <div class="p-section" id="pGallerySection" style="display:none">
+          <div class="p-label">Galleria</div>
+          <div id="pGallery" class="p-gallery"></div>
+        </div>
+
+      </div>
+    </aside>
+  </main>
+
+  <!-- Lightbox overlay -->
+  <div id="lightbox" class="lightbox" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="lightbox-backdrop"></div>
+    <div class="lightbox-inner">
+      <button id="lbClose" class="lb-close" title="Chiudi">✕</button>
+      <button id="lbPrev" class="lb-nav lb-prev" title="Precedente">‹</button>
+      <button id="lbNext" class="lb-nav lb-next" title="Successivo">›</button>
+      <div class="lb-body">
+        <div class="lb-media-wrap">
+          <img id="lbImg" class="lb-img" src="" alt="" />
+          <div id="lbPdf" class="lb-pdf"></div>
+          <div id="lbPdfFallback" class="lb-pdf-fallback">
+            <div class="lb-pdf-icon">PDF</div>
+            <p id="lbPdfTitle" class="lb-pdf-title"></p>
+            <a id="lbPdfLink" class="lb-pdf-open" href="#" target="_blank" rel="noreferrer">Apri PDF ↗</a>
+            <p class="lb-pdf-note">L'anteprima del PDF potrebbe non essere disponibile per restrizioni del server sorgente.</p>
+          </div>
+        </div>
+        <div class="lb-info">
+          <p id="lbDesc" class="lb-desc"></p>
+          <div class="lb-source-row">
+            <span id="lbSource" class="lb-source"></span>
+            <button id="lbCiteBtn" class="lb-cite-btn" title="Visualizza citazione" style="display:none">i</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Citation modal -->
+  <div id="citationModal" class="citation-modal" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="citation-modal-backdrop"></div>
+    <div class="citation-modal-box">
+      <button id="citationClose" class="citation-modal-close" title="Chiudi">✕</button>
+      <span class="citation-modal-label">Citazione</span>
+      <p id="citationText" class="citation-modal-text"></p>
+    </div>
+  </div>
+
+  <!-- Scala magnitudine -->
+  <div class="legend">
+    <div class="legend-title">Magnitudine</div>
+    <div class="legend-scale">
+      <div class="legend-dot" style="--r:4px"></div><span>5.0</span>
+      <div class="legend-dot" style="--r:8px"></div><span>6.0</span>
+      <div class="legend-dot" style="--r:13px"></div><span>7.0+</span>
+    </div>
+  </div>
+
+  <!-- Axis labels -->
+  <div class="axis-x-label">Tempo →</div>
+  <div class="axis-y-label">Magnitudo →</div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

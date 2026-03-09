@@ -1,0 +1,907 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Fragmenta — Mappa</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400&display=swap" />
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet" />
+
+  <style>
+    @font-face {
+      font-family: 'TWKEverett';
+      src: url('../font/TWKEverett-Medium-web.woff2') format('woff2');
+      font-weight: 500;
+      font-display: swap;
+    }
+    :root {
+      --bg:           #1A1A1A;
+      --bg2:          #141414;
+      --fg:           #888;
+      --fg-mid:       #aaa;
+      --fg-strong:    #e8e8e8;
+      --accent:       #c8522a;
+      --accent-dim:   rgba(200,82,42,0.18);
+      --line:         rgba(255,255,255,0.08);
+      --panel-bg:     #111;
+      --panel-border: rgba(255,255,255,0.07);
+      --mono:         'JetBrains Mono', monospace;
+      --display:      'TWKEverett', Georgia, serif;
+      --ease:         cubic-bezier(0.4,0,0.2,1);
+      --safe-top:     env(safe-area-inset-top, 0px);
+      --safe-bot:     env(safe-area-inset-bottom, 0px);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%; height: 100dvh;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--mono);
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      touch-action: manipulation;
+    }
+    button { font: inherit; cursor: pointer; background: none; border: none; color: inherit; }
+    a { color: inherit; text-decoration: none; }
+
+    /* ── Topbar ── */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0;
+      height: calc(52px + var(--safe-top));
+      padding: var(--safe-top) 16px 0;
+      display: flex; align-items: center; justify-content: space-between;
+      z-index: 100;
+      background: var(--bg);
+      border-bottom: 1px solid var(--line);
+    }
+    .brand { display: flex; align-items: center; gap: 8px; }
+    .brand-logo { height: 14px; filter: brightness(0) invert(1); }
+    .brand-sep { color: var(--accent); font-size: 13px; }
+    .brand-sub { font-size: 10px; letter-spacing: 0.04em; color: var(--fg); }
+
+    /* ── Map ── */
+    #map {
+      position: fixed; inset: 0;
+      top: calc(52px + var(--safe-top));
+    }
+
+    /* Mapbox overrides */
+    .mapboxgl-ctrl-group {
+      background: var(--panel-bg) !important;
+      border: 1px solid var(--panel-border) !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+    }
+    .mapboxgl-ctrl-group button {
+      border-radius: 0 !important;
+      border-bottom: 1px solid var(--panel-border) !important;
+    }
+    .mapboxgl-ctrl-group button:last-child { border-bottom: none !important; }
+    .mapboxgl-ctrl-icon { filter: invert(0.55); }
+    .mapboxgl-ctrl-attrib, .mapboxgl-ctrl-logo { display: none !important; }
+    .mapboxgl-ctrl-bottom-left {
+      bottom: calc(130px + var(--safe-bot)) !important;
+      left: 12px !important;
+    }
+
+    /* ── Search ── */
+    .search-bar {
+      position: fixed;
+      top: calc(60px + var(--safe-top));
+      left: 12px; right: 12px;
+      z-index: 50;
+      display: flex; gap: 6px;
+    }
+    .search-wrap { flex: 1; position: relative; }
+    .search-input {
+      width: 100%; height: 40px;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      color: var(--fg-strong);
+      font-family: var(--mono); font-size: 12px;
+      padding: 0 32px 0 12px;
+      outline: none; -webkit-appearance: none;
+      transition: border-color 0.2s var(--ease);
+    }
+    .search-input::placeholder { color: var(--fg); }
+    .search-input:focus { border-color: rgba(200,82,42,0.5); }
+    .search-clear {
+      position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+      font-size: 13px; color: var(--fg); padding: 4px; display: none;
+    }
+    .search-clear.vis { display: block; }
+    .search-btn {
+      height: 40px; padding: 0 14px;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      font-size: 11px; letter-spacing: 0.06em; color: var(--fg-mid);
+    }
+    .search-btn:active { color: var(--fg-strong); border-color: var(--accent); }
+
+    /* Suggestions */
+    .sugg {
+      position: fixed;
+      top: calc(104px + var(--safe-top));
+      left: 12px; right: 12px;
+      z-index: 60;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      display: none; max-height: 200px; overflow-y: auto;
+    }
+    .sugg.vis { display: block; }
+    .sugg-item {
+      padding: 10px 14px; font-size: 12px; color: var(--fg-mid);
+      border-bottom: 1px solid var(--panel-border);
+      cursor: pointer; display: flex;
+      justify-content: space-between; align-items: center; gap: 8px;
+    }
+    .sugg-item:last-child { border-bottom: none; }
+    .sugg-item:active { background: var(--accent-dim); }
+    .sugg-name { color: var(--fg-strong); flex: 1; }
+    .sugg-meta { font-size: 10px; color: var(--fg); flex-shrink: 0; }
+
+    /* ── Bottom-left controls ── */
+    .ctrl-bl {
+      position: fixed;
+      bottom: calc(16px + var(--safe-bot));
+      left: 12px; z-index: 50;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .count-chip {
+      background: var(--panel-bg); border: 1px solid var(--panel-border);
+      padding: 6px 10px; font-size: 10px; letter-spacing: 0.06em; color: var(--fg);
+      text-align: center; opacity: 0; transition: opacity 0.2s ease; pointer-events: none;
+    }
+    .count-chip.vis { opacity: 1; pointer-events: auto; }
+    .count-chip strong { font-family: var(--display); font-size: 17px; color: var(--accent); font-weight: 400; display: block; }
+    .radius-row {
+      background: var(--panel-bg); border: 1px solid var(--panel-border);
+      padding: 8px 12px; display: flex; align-items: center; gap: 10px;
+    }
+    .r-lbl { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fg); white-space: nowrap; }
+    .r-opts { display: flex; gap: 3px; }
+    .r-opt {
+      height: 24px; padding: 0 9px; font-size: 10px; letter-spacing: 0.05em;
+      border: 1px solid var(--panel-border); color: var(--fg);
+      transition: all 0.18s var(--ease);
+    }
+    .r-opt.on { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+    /* ── Locate button ── */
+    .locate-btn {
+      position: fixed;
+      bottom: calc(16px + var(--safe-bot)); right: 12px;
+      z-index: 50; width: 44px; height: 44px;
+      background: var(--panel-bg); border: 1px solid var(--panel-border);
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+      transition: border-color 0.18s var(--ease);
+    }
+    .locate-btn:active { border-color: var(--accent); background: var(--accent-dim); }
+    .locate-btn.spin { animation: pulse 1s ease infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    /* ── Legend ── */
+    .legend {
+      position: fixed;
+      bottom: calc(76px + var(--safe-bot)); right: 12px;
+      z-index: 50;
+      background: var(--panel-bg); border: 1px solid var(--panel-border);
+      padding: 8px 10px; font-size: 9px; letter-spacing: 0.08em; color: var(--fg);
+    }
+    .legend-title { text-transform: uppercase; margin-bottom: 6px; }
+    .legend-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+    .legend-row:last-child { margin-bottom: 0; }
+    .leg-dot { border-radius: 50%; flex-shrink: 0; opacity: 0.85; }
+
+    /* ── Bottom sheet ── */
+    .sheet {
+      position: fixed; left: 0; right: 0; bottom: 0;
+      z-index: 80;
+      background: var(--panel-bg); border-top: 1px solid var(--panel-border);
+      transform: translateY(100%);
+      transition: transform 0.3s var(--ease);
+      max-height: 72vh; display: flex; flex-direction: column;
+      padding-bottom: var(--safe-bot);
+    }
+    .sheet.open { transform: translateY(0); }
+    .sheet-handle {
+      width: 32px; height: 3px; background: rgba(255,255,255,0.12);
+      border-radius: 2px; margin: 10px auto 0; flex-shrink: 0;
+    }
+    .sheet-head {
+      padding: 12px 16px 0; flex-shrink: 0;
+    }
+    .sheet-head-top {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+    }
+    .sheet-tag { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+    .sheet-x {
+      width: 24px; height: 24px; border: 1px solid var(--panel-border);
+      display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--fg);
+    }
+    .sheet-title {
+      font-family: var(--display); font-size: 21px; font-weight: 500;
+      color: var(--fg-strong); line-height: 1.2; margin-bottom: 4px;
+    }
+    .sheet-dist { font-size: 10px; color: var(--accent); letter-spacing: 0.04em; padding-bottom: 12px; }
+
+    .sheet-stats {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 1px; background: var(--panel-border);
+      border-top: 1px solid var(--panel-border);
+      border-bottom: 1px solid var(--panel-border);
+      flex-shrink: 0;
+    }
+    .s-stat { background: var(--panel-bg); padding: 8px 6px; text-align: center; }
+    .s-val { font-family: var(--display); font-size: 19px; color: var(--fg-strong); display: block; }
+    .s-lbl { font-size: 8px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--fg); display: block; margin-top: 1px; }
+
+    .sheet-body {
+      flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+      padding: 14px 16px; scrollbar-width: none;
+    }
+    .sheet-body::-webkit-scrollbar { display: none; }
+    .sec-lbl {
+      font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent);
+      padding-bottom: 6px; margin-bottom: 8px; border-bottom: 1px solid var(--panel-border);
+    }
+    .gal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; }
+    .gal-img {
+      aspect-ratio: 1; overflow: hidden; cursor: pointer;
+      background: var(--bg2); border: 1px solid var(--panel-border);
+    }
+    .gal-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .gal-pdf {
+      aspect-ratio: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 4px;
+      cursor: pointer; background: var(--bg2); border: 1px solid var(--panel-border);
+    }
+    .gal-pdf-icon { font-size: 9px; letter-spacing: 0.14em; color: var(--accent); border: 1px solid var(--accent); padding: 2px 6px; }
+    .gal-pdf-lbl { font-size: 7px; color: var(--fg); text-align: center; padding: 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+    /* ── Lightbox ── */
+    .lightbox {
+      position: fixed; inset: 0; z-index: 200;
+      background: #080808;
+      display: flex; flex-direction: column;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+    }
+    .lightbox.open { opacity: 1; pointer-events: all; }
+    .lb-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px; padding-top: calc(12px + var(--safe-top));
+      border-bottom: 1px solid var(--panel-border); flex-shrink: 0;
+    }
+    .lb-count { font-size: 10px; letter-spacing: 0.10em; color: var(--fg); }
+    .lb-x {
+      width: 32px; height: 32px; border: 1px solid var(--panel-border);
+      display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--fg-mid);
+    }
+    .lb-stage {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      overflow: hidden; position: relative; background: #080808;
+    }
+    .lb-img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; transition: opacity 0.15s ease; }
+    .lb-img.fade { opacity: 0; }
+    .lb-pdf-view {
+      width: 100%; height: 100%; display: none;
+      flex-direction: column; align-items: center; overflow-y: auto; background: #141414;
+    }
+    .lb-pdf-canvas { display: block; max-width: 100%; height: auto; }
+    .lb-pdf-loading { padding: 40px; font-size: 10px; letter-spacing: 0.10em; color: rgba(255,255,255,0.25); text-transform: uppercase; }
+    .lb-pdf-fb {
+      display: none; flex-direction: column; align-items: center;
+      justify-content: center; gap: 12px; padding: 32px; text-align: center;
+    }
+    .lb-pdf-fb-icon { font-size: 11px; letter-spacing: 0.18em; color: var(--accent); border: 1px solid var(--accent); padding: 4px 12px; }
+    .lb-pdf-fb-link { border: 1px solid rgba(255,255,255,0.2); padding: 7px 16px; font-size: 11px; color: rgba(255,255,255,0.6); letter-spacing: 0.06em; }
+    .lb-pdf-fb-note { font-size: 9px; color: rgba(255,255,255,0.22); max-width: 220px; line-height: 1.6; }
+    .lb-foot {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px; padding-bottom: calc(10px + var(--safe-bot));
+      border-top: 1px solid var(--panel-border); flex-shrink: 0;
+    }
+    .lb-nav {
+      width: 44px; height: 44px; flex-shrink: 0;
+      border: 1px solid var(--panel-border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; color: var(--fg-mid);
+    }
+    .lb-nav:active { color: var(--fg-strong); }
+    .lb-nav.off { opacity: 0.18; pointer-events: none; }
+    .lb-meta { flex: 1; min-width: 0; text-align: center; }
+    .lb-desc {
+      font-size: 11px; color: rgba(255,255,255,0.35); line-height: 1.5;
+      overflow: hidden; display: -webkit-box;
+      -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-bottom: 3px;
+    }
+    .lb-src-row { display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .lb-src { font-size: 9px; letter-spacing: 0.08em; color: var(--accent); text-transform: uppercase; }
+    .lb-cite-i {
+      width: 14px; height: 14px; border-radius: 50%;
+      border: 1px solid rgba(200,82,42,0.5); color: var(--accent); font-size: 8px;
+      display: none; align-items: center; justify-content: center;
+    }
+
+    /* ── Citation sheet ── */
+    .cite-sheet {
+      position: fixed; inset: 0; z-index: 300;
+      display: flex; align-items: flex-end;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+    }
+    .cite-sheet.open { opacity: 1; pointer-events: all; }
+    .cite-bd { position: absolute; inset: 0; background: rgba(0,0,0,0.55); }
+    .cite-box {
+      position: relative; z-index: 1; width: 100%;
+      background: #111; border-top: 1px solid rgba(200,82,42,0.2);
+      padding: 18px 20px calc(18px + var(--safe-bot));
+    }
+    .cite-head {
+      font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent);
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+    }
+    .cite-close { width: 22px; height: 22px; border: 1px solid rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--fg); }
+    .cite-text { font-size: 11px; font-family: var(--mono); color: rgba(255,255,255,0.5); line-height: 1.8; white-space: pre-wrap; user-select: text; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: calc(70px + var(--safe-bot)); left: 50%;
+      transform: translateX(-50%) translateY(8px);
+      background: rgba(28,28,28,0.95); border: 1px solid var(--panel-border);
+      padding: 7px 14px; font-size: 11px; color: var(--fg-mid);
+      white-space: nowrap; opacity: 0;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      z-index: 90; pointer-events: none;
+    }
+    .toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .u-dot {
+      width: 14px; height: 14px; border-radius: 50%;
+      background: #4a9eff; border: 2px solid #fff;
+      box-shadow: 0 0 0 5px rgba(74,158,255,0.2);
+    }
+  </style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand">
+      <a href="home.html"><img src="img_site/logo.svg" alt="Fragmenta" class="brand-logo" /></a>
+      <span class="brand-sep">—</span>
+      <span class="brand-sub">Mappa sismica</span>
+    </div>
+  </header>
+
+  <div id="map"></div>
+
+  <!-- Search -->
+  <div class="search-bar">
+    <div class="search-wrap">
+      <input id="sInput" class="search-input" type="text"
+        placeholder="Cerca una località…" autocomplete="off" autocorrect="off" spellcheck="false" />
+      <button id="sClear" class="search-clear">✕</button>
+    </div>
+    <button id="sGo" class="search-btn">Cerca</button>
+  </div>
+
+  <div id="suggBox" class="sugg"></div>
+
+  <!-- Bottom-left -->
+  <div class="ctrl-bl">
+    <div id="countChip" class="count-chip"><strong id="countN">0</strong>eventi</div>
+    <div class="radius-row">
+      <span class="r-lbl">Raggio</span>
+      <div class="r-opts">
+        <button class="r-opt" data-km="50">50</button>
+        <button class="r-opt on" data-km="100">100</button>
+        <button class="r-opt" data-km="200">200</button>
+        <button class="r-opt" data-km="500">500</button>
+      </div>
+      <span class="r-lbl">km</span>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="legend-title">Magnitudo</div>
+    <div class="legend-row"><div class="leg-dot" style="width:10px;height:10px;background:#aaa"></div><span>5.0–5.5</span></div>
+    <div class="legend-row"><div class="leg-dot" style="width:14px;height:14px;background:#c4a06a"></div><span>5.5–6.0</span></div>
+    <div class="legend-row"><div class="leg-dot" style="width:18px;height:18px;background:#d47a42"></div><span>6.0–6.5</span></div>
+    <div class="legend-row"><div class="leg-dot" style="width:22px;height:22px;background:#c8522a"></div><span>6.5–7.0</span></div>
+    <div class="legend-row"><div class="leg-dot" style="width:26px;height:26px;background:#a83018"></div><span>7.0+</span></div>
+  </div>
+
+  <!-- Locate -->
+  <button id="locateBtn" class="locate-btn">◎</button>
+
+  <!-- Sheet -->
+  <div id="sheet" class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div class="sheet-head-top">
+        <span class="sheet-tag">Evento selezionato</span>
+        <button id="sheetX" class="sheet-x">✕</button>
+      </div>
+      <div id="shTitle" class="sheet-title">—</div>
+      <div id="shDist" class="sheet-dist"></div>
+    </div>
+    <div id="shStats" class="sheet-stats"></div>
+    <div class="sheet-body">
+      <div id="gallSec" style="display:none">
+        <div class="sec-lbl">Galleria</div>
+        <div id="gallGrid" class="gal-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lightbox -->
+  <div id="lb" class="lightbox">
+    <div class="lb-bar">
+      <span id="lbCount" class="lb-count"></span>
+      <button id="lbX" class="lb-x">✕</button>
+    </div>
+    <div class="lb-stage" id="lbStage">
+      <img id="lbImg" class="lb-img" src="" alt="" />
+      <div id="lbPdfView" class="lb-pdf-view"></div>
+      <div id="lbPdfFb" class="lb-pdf-fb">
+        <div class="lb-pdf-fb-icon">PDF</div>
+        <p id="lbFbTitle"></p>
+        <a id="lbFbLink" class="lb-pdf-fb-link" href="#" target="_blank" rel="noreferrer">Apri PDF ↗</a>
+        <p class="lb-pdf-fb-note">Anteprima non disponibile.</p>
+      </div>
+    </div>
+    <div class="lb-foot">
+      <button id="lbPrev" class="lb-nav">‹</button>
+      <div class="lb-meta">
+        <div id="lbDesc" class="lb-desc"></div>
+        <div class="lb-src-row">
+          <span id="lbSrc" class="lb-src"></span>
+          <button id="lbCiteI" class="lb-cite-i">i</button>
+        </div>
+      </div>
+      <button id="lbNext" class="lb-nav">›</button>
+    </div>
+  </div>
+
+  <!-- Citation sheet -->
+  <div id="citeSheet" class="cite-sheet">
+    <div id="citeBd" class="cite-bd"></div>
+    <div class="cite-box">
+      <div class="cite-head">
+        <span>Citazione</span>
+        <button id="citeX" class="cite-close">✕</button>
+      </div>
+      <p id="citeText" class="cite-text"></p>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+  <script type="module">
+
+    mapboxgl.accessToken = "pk.eyJ1Ijoib2xpdmE2IiwiYSI6ImNtbWQ5eTV3dTAweXkydHF1NGgwcGh3aHgifQ.hwvkQ17zN_K85U8ZbGj4zA";
+
+    const PROXY = window.location.hostname === "localhost"
+  ? "http://localhost:3131/proxy?url="
+  : "/proxy?url=";
+    const CITATION = "Guidoboni E., Ferrari G., Mariotti D., Comastri A., Tarabusi G.,\nSgattoni G., Valensise G. (2018) - CFTI5Med, Catalogo dei Forti\nTerremoti in Italia (461 a.C.-1997) e nell'area Mediterranea\n(760 a.C.-1500). Istituto Nazionale di Geofisica e Vulcanologia\n(INGV). doi: https://doi.org/10.6092/ingv.it-cfti5";
+
+    /* ── State ── */
+    let nodes = [], edges = [], edgesByNode = new Map();
+    let radiusKm = 100, userLngLat = null, userMarker = null;
+    let lbItems = [], lbIdx = 0;
+    let pdfjsLib = null, pdfJsReady = false, pdfJsQ = [];
+    let proxyOk = null;
+    const COUNTRY_FILTER = "it,sm,va,ch";
+
+    /* ── DOM ── */
+    const $ = id => document.getElementById(id);
+    const sInput=$("sInput"), sClear=$("sClear"), sGo=$("sGo"), suggBox=$("suggBox");
+    const locBtn=$("locateBtn"), countChip=$("countChip"), countN=$("countN");
+    const sheet=$("sheet"), sheetX=$("sheetX");
+    const shTitle=$("shTitle"), shDist=$("shDist"), shStats=$("shStats");
+    const gallSec=$("gallSec"), gallGrid=$("gallGrid");
+    const lb=$("lb"), lbX=$("lbX"), lbStage=$("lbStage");
+    const lbImg=$("lbImg"), lbPdfView=$("lbPdfView"), lbPdfFb=$("lbPdfFb");
+    const lbFbTitle=$("lbFbTitle"), lbFbLink=$("lbFbLink");
+    const lbCount=$("lbCount"), lbPrev=$("lbPrev"), lbNext=$("lbNext");
+    const lbDesc=$("lbDesc"), lbSrc=$("lbSrc"), lbCiteI=$("lbCiteI");
+    const citeSheet=$("citeSheet"), citeBd=$("citeBd"), citeX=$("citeX"), citeText=$("citeText");
+    const toastEl=$("toast");
+
+    /* ── Map ── */
+    const map = new mapboxgl.Map({
+      container: "map",
+      style: "mapbox://styles/mapbox/dark-v11",
+      center: [12.5, 42.5],
+      zoom: 5.2,
+      minZoom: 3,
+      attributionControl: false,
+    });
+    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "bottom-left");
+
+    map.on("load", async () => {
+      await loadData();
+      setupLayers();
+    });
+
+    /* ── Data ── */
+    async function loadData() {
+      const net = await (await fetch("./network.json")).json();
+      nodes = net.nodes; edges = net.edges;
+      edgesByNode = new Map();
+      for (const n of nodes) edgesByNode.set(n.id, []);
+      for (const e of edges) {
+        edgesByNode.get(e.source)?.push({ id: e.target, w: e.weight });
+        edgesByNode.get(e.target)?.push({ id: e.source, w: e.weight });
+      }
+      for (const [id, lst] of edgesByNode) {
+        lst.sort((a,b) => b.w - a.w);
+        edgesByNode.set(id, lst.slice(0, 12));
+      }
+    }
+
+    /* ── Layers ── */
+    function setupLayers() {
+      const geojson = {
+        type: "FeatureCollection",
+        features: nodes.map(n => ({
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [n.lon, n.lat] },
+          properties: { id: n.id, mag: n.mag ?? 5.0, place: n.place || "", year: n.year, locality_count: n.locality_count ?? 0 }
+        }))
+      };
+      map.addSource("quakes", { type: "geojson", data: geojson });
+
+      map.addLayer({
+        id: "q-halo", type: "circle", source: "quakes",
+        paint: {
+          "circle-radius": ["interpolate",["linear"],["zoom"], 3,["+",["*",["-",["get","mag"],4.5],5],8], 10,["+",["*",["-",["get","mag"],4.5],12],14]],
+          "circle-color": magColor(),
+          "circle-opacity": 0.15,
+          "circle-blur": 1.2,
+        }
+      });
+
+      map.addLayer({
+        id: "q-circle", type: "circle", source: "quakes",
+        paint: {
+          "circle-radius": ["interpolate",["linear"],["zoom"], 3,["+",["*",["-",["get","mag"],4.5],2.5],4], 10,["+",["*",["-",["get","mag"],4.5],8],8]],
+          "circle-color": magColor(),
+          "circle-opacity": 0.88,
+          "circle-stroke-width": 0.5,
+          "circle-stroke-color": "rgba(255,255,255,0.18)",
+        }
+      });
+
+      map.on("click", "q-circle", e => {
+        const n = nodes.find(x => x.id === e.features[0].properties.id);
+        if (n) selectNode(n);
+      });
+      map.on("mouseenter", "q-circle", () => { map.getCanvas().style.cursor = "pointer"; });
+      map.on("mouseleave", "q-circle", () => { map.getCanvas().style.cursor = ""; });
+
+      map.setFilter("q-circle", ["==", ["get", "id"], -1]);
+      map.setFilter("q-halo",   ["==", ["get", "id"], -1]);
+    }
+
+    function magColor() {
+      return ["interpolate",["linear"],["get","mag"], 5.0,"#aaaaaa", 5.5,"#c4a06a", 6.0,"#d47a42", 6.5,"#c8522a", 7.0,"#a83018"];
+    }
+
+    /* ── Filter ── */
+    function filterByPos(lng, lat, km) {
+      const ids = nodes.filter(n => haversine(lat, lng, n.lat, n.lon) <= km).map(n => n.id);
+      const f = ["in", ["get","id"], ["literal", ids]];
+      map.setFilter("q-circle", f);
+      map.setFilter("q-halo",   f);
+      showCount(ids.length);
+      return ids.length;
+    }
+    function clearFilter() {
+      map.setFilter("q-circle", null);
+      map.setFilter("q-halo",   null);
+      showCount(nodes.length);
+    }
+    function showCount(n) { countN.textContent = n; countChip.classList.add("vis"); }
+
+    /* ── Radius ring on map ── */
+    function drawRing(lng, lat, km) {
+      ["r-fill","r-line"].forEach(id => { if (map.getLayer(id)) map.removeLayer(id); });
+      if (map.getSource("ring")) map.removeSource("ring");
+      const pts = 64, coords = [];
+      for (let i = 0; i <= pts; i++) {
+        const a = (i/pts)*2*Math.PI;
+        coords.push([lng + (km/111.32)*Math.cos(a)/Math.cos(lat*Math.PI/180), lat + (km/111.32)*Math.sin(a)]);
+      }
+      map.addSource("ring", { type:"geojson", data:{ type:"Feature", geometry:{ type:"Polygon", coordinates:[coords] } } });
+      map.addLayer({ id:"r-fill", type:"fill", source:"ring", paint:{"fill-color":"#c8522a","fill-opacity":0.04} }, "q-halo");
+      map.addLayer({ id:"r-line", type:"line", source:"ring", paint:{"line-color":"rgba(200,82,42,0.4)","line-width":1,"line-dasharray":[4,5]} }, "q-halo");
+    }
+    function removeRing() {
+      ["r-fill","r-line"].forEach(id => { if (map.getLayer(id)) map.removeLayer(id); });
+      if (map.getSource("ring")) map.removeSource("ring");
+    }
+
+    /* ── User marker ── */
+    function placeUserMarker(lng, lat) {
+      if (userMarker) userMarker.remove();
+      const el = document.createElement("div"); el.className = "u-dot";
+      userMarker = new mapboxgl.Marker({ element: el }).setLngLat([lng, lat]).addTo(map);
+    }
+
+    /* ── Utils ── */
+    function haversine(lat1, lng1, lat2, lng2) {
+      const R=6371, d=Math.PI/180;
+      const dLat=(lat2-lat1)*d, dLng=(lng2-lng1)*d;
+      const a=Math.sin(dLat/2)**2+Math.cos(lat1*d)*Math.cos(lat2*d)*Math.sin(dLng/2)**2;
+      return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+    }
+    function yearLabel(y) { return y<0?`${Math.abs(y)} a.C.`:String(y); }
+    function toast(msg, ms=2200) {
+      toastEl.textContent = msg; toastEl.classList.add("on");
+      setTimeout(() => toastEl.classList.remove("on"), ms);
+    }
+
+    /* ── Locate ── */
+    locBtn.addEventListener("click", () => {
+      if (!navigator.geolocation) { toast("Geolocalizzazione non supportata dal browser"); return; }
+      if (location.protocol !== "https:" && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
+        toast("Geolocalizzazione richiede HTTPS. Cerca una città manualmente.", 4000);
+        return;
+      }
+      locBtn.classList.add("spin");
+      navigator.geolocation.getCurrentPosition(pos => {
+        locBtn.classList.remove("spin");
+        const {longitude:lng, latitude:lat} = pos.coords;
+        userLngLat = [lng, lat];
+        placeUserMarker(lng, lat);
+        drawRing(lng, lat, radiusKm);
+        const count = filterByPos(lng, lat, radiusKm);
+        map.flyTo({ center:[lng,lat], zoom:8, speed:1.2 });
+        toast(`${count} eventi nel raggio di ${radiusKm} km`);
+      }, (err) => {
+        locBtn.classList.remove("spin");
+        if (err.code === 1) toast("Permesso posizione negato. Controlla le impostazioni.", 3500);
+        else if (err.code === 2) toast("Posizione non disponibile", 3000);
+        else toast("Timeout geolocalizzazione — riprova", 3000);
+      }, { timeout:10000, maximumAge:60000, enableHighAccuracy:false });
+    });
+
+    /* ── Radius ── */
+    document.querySelectorAll(".r-opt").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".r-opt").forEach(b => b.classList.remove("on"));
+        btn.classList.add("on");
+        radiusKm = parseInt(btn.dataset.km);
+        if (userLngLat) {
+          drawRing(userLngLat[0], userLngLat[1], radiusKm);
+          toast(`${filterByPos(userLngLat[0], userLngLat[1], radiusKm)} eventi nel raggio di ${radiusKm} km`);
+        }
+      });
+    });
+
+    /* ── Search ── */
+    let suggDebounce = null;
+
+    sInput.addEventListener("input", () => {
+      const q = sInput.value.trim();
+      sClear.classList.toggle("vis", q.length > 0);
+      suggBox.classList.remove("vis");
+      clearTimeout(suggDebounce);
+      if (q.length < 2) return;
+      suggDebounce = setTimeout(() => fetchSugg(q), 350);
+    });
+
+    async function fetchSugg(q) {
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=6&addressdetails=1&accept-language=it&countrycodes=${COUNTRY_FILTER}`;
+        const results = await (await fetch(url, { headers: { "Accept-Language": "it" } })).json();
+        if (!results.length) { suggBox.classList.remove("vis"); return; }
+
+        suggBox.innerHTML = results.map((r) => {
+          const a = r.address || {};
+          const place = a.city || a.town || a.village || a.municipality || a.county || r.display_name.split(",")[0];
+          const country = a.country || "";
+          const sub = [a.state || a.region, country].filter(Boolean).join(", ");
+          return `<div class="sugg-item" data-lng="${r.lon}" data-lat="${r.lat}" data-label="${place}">
+            <span class="sugg-name">${place}</span>
+            <span class="sugg-meta">${sub}</span>
+          </div>`;
+        }).join("");
+
+        suggBox.querySelectorAll(".sugg-item").forEach(el => {
+          el.addEventListener("click", () => {
+            const lng = parseFloat(el.dataset.lng);
+            const lat = parseFloat(el.dataset.lat);
+            const label = el.dataset.label;
+            sInput.value = label;
+            sClear.classList.add("vis");
+            suggBox.classList.remove("vis");
+            goToLocation(lng, lat);
+          });
+        });
+        suggBox.classList.add("vis");
+      } catch { /* silently fail */ }
+    }
+
+    sClear.addEventListener("click", () => {
+      sInput.value = ""; sClear.classList.remove("vis"); suggBox.classList.remove("vis");
+      clearFilter(); removeRing();
+      if (userMarker) { userMarker.remove(); userMarker = null; }
+      userLngLat = null;
+    });
+
+    sGo.addEventListener("click", () => {
+      const q = sInput.value.trim();
+      if (!q) return;
+      suggBox.classList.remove("vis");
+      doSearch(q);
+    });
+    sInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") { suggBox.classList.remove("vis"); doSearch(sInput.value.trim()); }
+      if (e.key === "Escape") suggBox.classList.remove("vis");
+    });
+    map.on("click", () => suggBox.classList.remove("vis"));
+
+    async function doSearch(q) {
+      if (!q) return;
+      toast("Ricerca in corso…", 3000);
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&accept-language=it&countrycodes=${COUNTRY_FILTER}`;
+        const d = await (await fetch(url, { headers: { "Accept-Language": "it" } })).json();
+        if (!d.length) { toast("Località non trovata"); return; }
+        goToLocation(parseFloat(d[0].lon), parseFloat(d[0].lat));
+      } catch { toast("Errore nella ricerca"); }
+    }
+
+    function goToLocation(lng, lat) {
+      userLngLat = [lng, lat];
+      placeUserMarker(lng, lat);
+      drawRing(lng, lat, radiusKm);
+      const count = filterByPos(lng, lat, radiusKm);
+      map.flyTo({ center: [lng, lat], zoom: 8, speed: 1.2 });
+      toast(`${count} eventi nel raggio di ${radiusKm} km`);
+    }
+
+    /* ── Select / Sheet ── */
+    function selectNode(n) {
+      map.flyTo({center:[n.lon,n.lat], zoom:Math.max(map.getZoom(),9), speed:1.4});
+      openSheet(n);
+    }
+
+    function openSheet(n) {
+      shTitle.textContent = n.place || `Evento ${n.id}`;
+      shDist.textContent  = userLngLat
+        ? `◎ ${Math.round(haversine(userLngLat[1],userLngLat[0],n.lat,n.lon))} km dalla tua posizione`
+        : "";
+      shStats.innerHTML = `
+        <div class="s-stat"><span class="s-val">${n.mag??'—'}</span><span class="s-lbl">Magnitudo</span></div>
+        <div class="s-stat"><span class="s-val">${yearLabel(n.year)}</span><span class="s-lbl">Anno</span></div>
+        <div class="s-stat"><span class="s-val">${n.locality_count??0}</span><span class="s-lbl">Località</span></div>
+      `;
+      buildGallery(n);
+      sheet.classList.add("open");
+    }
+    sheetX.addEventListener("click", () => sheet.classList.remove("open"));
+
+    /* ── Gallery ── */
+    function buildGallery(n) {
+      gallGrid.innerHTML = "";
+      const items = [];
+      if (n.assets?.length) n.assets.forEach(a => items.push({...a, kind: a.type==="pdf"?"pdf":"image"}));
+      const urls = n.pdf_r_urls?.length ? n.pdf_r_urls : (n.pdf_r_url ? [n.pdf_r_url] : []);
+      for (const url of urls) {
+        if (items.some(i => i.path===url)) continue;
+        const fname = url.split("/").pop().replace("_R.pdf","");
+        items.push({kind:"pdf", path:url, title:"PDF_R · "+fname, description:"Rapporto macrosismico PDF_R.", source:"INGV – CFTI"});
+      }
+      if (!items.length) { gallSec.style.display="none"; return; }
+      gallSec.style.display="";
+      items.forEach((item, idx) => {
+        const tile = document.createElement("div");
+        if (item.kind==="pdf") {
+          tile.className="gal-pdf";
+          tile.innerHTML=`<span class="gal-pdf-icon">PDF</span><span class="gal-pdf-lbl">${item.title.replace("PDF_R · ","").replace(/-/g,"·")}</span>`;
+        } else {
+          tile.className="gal-img";
+          tile.innerHTML=`<img src="${item.path}" alt="${item.title||''}" loading="lazy"/>`;
+        }
+        tile.addEventListener("click", () => openLb(items, idx));
+        gallGrid.appendChild(tile);
+      });
+    }
+
+    /* ── Lightbox ── */
+    function openLb(items, idx) { lbItems=items; lbIdx=idx; lb.classList.add("open"); renderLb(); }
+    function closeLb() {
+      lb.classList.remove("open");
+      lbImg.src=""; lbPdfView.innerHTML="";
+      lbPdfView.style.display="none"; lbPdfFb.style.display="none";
+    }
+    function renderLb() {
+      const item = lbItems[lbIdx]; if (!item) return;
+      lbCount.textContent=`${lbIdx+1} / ${lbItems.length}`;
+      lbPrev.classList.toggle("off", lbIdx===0);
+      lbNext.classList.toggle("off", lbIdx===lbItems.length-1);
+      lbImg.style.display="none";
+      lbPdfView.style.display="none"; lbPdfView.innerHTML="";
+      lbPdfFb.style.display="none";
+      lbDesc.textContent=item.description||"";
+      if (item.kind==="pdf") {
+        lbSrc.textContent=item.source||"INGV – CFTI";
+        lbCiteI.style.display="inline-flex";
+        lbFbTitle.textContent=item.title||"PDF"; lbFbLink.href=item.path;
+        lbPdfView.style.display="flex";
+        lbPdfView.innerHTML=`<div class="lb-pdf-loading">Caricamento…</div>`;
+        loadPdfJs(lib => renderPdf(lib, item.path));
+      } else {
+        const parts=[item.author,item.rights].filter(Boolean);
+        lbSrc.textContent=parts.join(" · ")||(item.source||"");
+        lbCiteI.style.display="none";
+        lbImg.classList.add("fade"); lbImg.style.display="block"; lbImg.src="";
+        lbImg.onload=()=>lbImg.classList.remove("fade"); lbImg.src=item.path;
+      }
+    }
+    lbX.addEventListener("click", closeLb);
+    lbPrev.addEventListener("click", () => { if(lbIdx>0){lbIdx--;renderLb();} });
+    lbNext.addEventListener("click", () => { if(lbIdx<lbItems.length-1){lbIdx++;renderLb();} });
+    let tx=0;
+    lbStage.addEventListener("touchstart", e=>{tx=e.touches[0].clientX;},{passive:true});
+    lbStage.addEventListener("touchend",   e=>{const dx=e.changedTouches[0].clientX-tx; if(Math.abs(dx)>50){dx<0?lbNext.click():lbPrev.click();}},{passive:true});
+
+    /* ── PDF.js ── */
+    function loadPdfJs(cb) {
+      if(pdfJsReady){cb(pdfjsLib);return;}
+      pdfJsQ.push(cb); if(pdfJsQ.length>1)return;
+      const s=document.createElement("script");
+      s.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+      s.onload=()=>{
+        pdfjsLib=window["pdfjs-dist/build/pdf"];
+        pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+        pdfJsReady=true; pdfJsQ.forEach(fn=>fn(pdfjsLib)); pdfJsQ.length=0;
+      };
+      document.head.appendChild(s);
+    }
+    async function checkProxy() {
+      if(proxyOk!==null)return proxyOk;
+      try{const r=await fetch(`http://${PROXY_HOST}:3131/health`,{signal:AbortSignal.timeout(1500)});proxyOk=r.ok;}
+      catch{proxyOk=false;}
+      return proxyOk;
+    }
+    async function renderPdf(lib, url) {
+      const fetchUrl=(url.includes("storing.ingv.it")&&await checkProxy())?PROXY+encodeURIComponent(url):url;
+      try {
+        const pdf=await lib.getDocument({url:fetchUrl,withCredentials:false}).promise;
+        const page=await pdf.getPage(1);
+        const vp0=page.getViewport({scale:1});
+        const scale=Math.min(2,window.innerWidth/vp0.width);
+        const vp=page.getViewport({scale});
+        const canvas=document.createElement("canvas");
+        canvas.className="lb-pdf-canvas"; canvas.width=vp.width; canvas.height=vp.height;
+        lbPdfView.innerHTML=""; lbPdfView.appendChild(canvas);
+        await page.render({canvasContext:canvas.getContext("2d"),viewport:vp}).promise;
+        if(pdf.numPages>1){
+          const f=document.createElement("div");
+          f.style.cssText="padding:8px;font-size:10px;color:rgba(255,255,255,0.28);text-align:center;width:100%;";
+          f.innerHTML=`Pagina 1 di ${pdf.numPages} · <a href="${url}" target="_blank" style="color:var(--accent)">Apri completo ↗</a>`;
+          lbPdfView.appendChild(f);
+        }
+      } catch { lbPdfView.style.display="none"; lbPdfFb.style.display="flex"; }
+    }
+
+    /* ── Citation ── */
+    lbCiteI.addEventListener("click",()=>{citeText.textContent=CITATION;citeSheet.classList.add("open");});
+    citeX.addEventListener("click",()=>citeSheet.classList.remove("open"));
+    citeBd.addEventListener("click",()=>citeSheet.classList.remove("open"));
+
+  </script>
+</body>
+</html>
