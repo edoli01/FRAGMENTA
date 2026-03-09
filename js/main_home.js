@@ -24,7 +24,7 @@ function goTo(page) {
 
 nextBtn.addEventListener("click",    () => goTo(2));
 backBtn.addEventListener("click",    () => goTo(1));
-archiveBtn.addEventListener("click", () => { window.location.href = "index.html"; });
+archiveBtn.addEventListener("click", () => { window.location.href = "network.html"; });
 
 let touchStartY = 0;
 window.addEventListener("wheel", (e) => {
