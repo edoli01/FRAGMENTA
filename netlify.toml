@@ -6,7 +6,7 @@
   to = "/.netlify/functions/proxy"
   status = 200
 
-  [[redirects]]
+[[redirects]]
   from = "/"
   to = "/home.html"
   status = 200
