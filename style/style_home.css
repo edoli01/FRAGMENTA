@@ -60,13 +60,20 @@ html, body {
               transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Pagina 1: sec1 visibile, sec2 nascosta sotto */
+/* Pagina 1 */
 body[data-page="1"] #section1 { opacity: 1; transform: translateY(0); }
 body[data-page="1"] #section2 { opacity: 0; transform: translateY(40px); pointer-events: none; }
+body[data-page="1"] #section3 { opacity: 0; transform: translateY(40px); pointer-events: none; }
 
-/* Pagina 2: sec2 visibile, sec1 nascosta sopra */
+/* Pagina 2 */
 body[data-page="2"] #section1 { opacity: 0; transform: translateY(-40px); pointer-events: none; }
 body[data-page="2"] #section2 { opacity: 1; transform: translateY(0); }
+body[data-page="2"] #section3 { opacity: 0; transform: translateY(40px); pointer-events: none; }
+
+/* Pagina 3 */
+body[data-page="3"] #section1 { opacity: 0; transform: translateY(-40px); pointer-events: none; }
+body[data-page="3"] #section2 { opacity: 0; transform: translateY(-40px); pointer-events: none; }
+body[data-page="3"] #section3 { opacity: 1; transform: translateY(0); }
 
 /* ── Sezione 1: Brand ── */
 .brand-wrapper {
@@ -85,9 +92,9 @@ body[data-page="2"] #section2 { opacity: 1; transform: translateY(0); }
   width: clamp(320px, 55vw, 700px);
   height: auto;
   margin-bottom: 15px;
-  filter: invert(1);
   transition: filter 0.5s ease;
 }
+.main-logo { filter: invert(1); }
 body.light-mode .main-logo { filter: invert(0); }
 
 .subtitle {
@@ -180,6 +187,7 @@ body.light-mode .icon-moon { opacity: 0; transform: rotate(-90deg); }
 #backBtn .material-symbols-outlined { position: static; font-size: 18px; }
 body[data-page="1"] #backBtn { opacity: 0; pointer-events: none; }
 body[data-page="2"] #backBtn { opacity: 1; pointer-events: auto; }
+body[data-page="3"] #backBtn { opacity: 1; pointer-events: auto; }
 
 /* Bottoni nav in basso */
 .nav-btn {
@@ -206,6 +214,13 @@ body[data-page="2"] #backBtn { opacity: 1; pointer-events: auto; }
 }
 
 body[data-page="1"] #nextBtn    { opacity: 1; pointer-events: auto; }
+body[data-page="1"] #projectBtn { opacity: 0; pointer-events: none; }
 body[data-page="1"] #archiveBtn { opacity: 0; pointer-events: none; }
+
 body[data-page="2"] #nextBtn    { opacity: 0; pointer-events: none; }
-body[data-page="2"] #archiveBtn { opacity: 1; pointer-events: auto; }
+body[data-page="2"] #projectBtn { opacity: 1; pointer-events: auto; }
+body[data-page="2"] #archiveBtn { opacity: 0; pointer-events: none; }
+
+body[data-page="3"] #nextBtn    { opacity: 0; pointer-events: none; }
+body[data-page="3"] #projectBtn { opacity: 0; pointer-events: none; }
+body[data-page="3"] #archiveBtn { opacity: 1; pointer-events: auto; }
