@@ -1,5 +1,7 @@
 [build]
   functions = "netlify/functions"
+  publish = "."
+  command = ""
 
 [[redirects]]
   from = "/proxy"
