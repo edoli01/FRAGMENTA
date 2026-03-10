@@ -7,6 +7,7 @@ const container  = document.getElementById("bg");
 const cursorDot  = document.getElementById("cursorDot");
 const toggleBtn  = document.getElementById("themeToggle");
 const nextBtn    = document.getElementById("nextBtn");
+const projectBtn = document.getElementById("projectBtn");
 const archiveBtn = document.getElementById("archiveBtn");
 const backBtn    = document.getElementById("backBtn");
 
@@ -22,20 +23,22 @@ function goTo(page) {
   setTimeout(() => { transitioning = false; }, 750);
 }
 
+const MAX_PAGE = 3;
 nextBtn.addEventListener("click",    () => goTo(2));
-backBtn.addEventListener("click",    () => goTo(1));
+projectBtn.addEventListener("click", () => goTo(3));
+backBtn.addEventListener("click",    () => goTo(currentPage - 1));
 archiveBtn.addEventListener("click", () => { window.location.href = "network.html"; });
 
 let touchStartY = 0;
 window.addEventListener("wheel", (e) => {
-  if (e.deltaY > 30)  goTo(2);
-  if (e.deltaY < -30) goTo(1);
+  if (e.deltaY > 30)  goTo(Math.min(currentPage + 1, MAX_PAGE));
+  if (e.deltaY < -30) goTo(Math.max(currentPage - 1, 1));
 }, { passive: true });
 window.addEventListener("touchstart", (e) => { touchStartY = e.touches[0].clientY; }, { passive: true });
 window.addEventListener("touchend",   (e) => {
   const dy = touchStartY - e.changedTouches[0].clientY;
-  if (dy >  40) goTo(2);
-  if (dy < -40) goTo(1);
+  if (dy >  40) goTo(Math.min(currentPage + 1, MAX_PAGE));
+  if (dy < -40) goTo(Math.max(currentPage - 1, 1));
 }, { passive: true });
 
 /* ── Temi ── */
