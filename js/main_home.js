@@ -43,9 +43,9 @@ const themes = {
   day:   { bg: new THREE.Color(0xF7F7F7), crack: new THREE.Color(0xC3C3C3) },
   night: { bg: new THREE.Color(0x1A1A1A), crack: new THREE.Color(0x949494) }
 };
-let isDark = false;
-const currentBg    = themes.day.bg.clone();
-const currentCrack = themes.day.crack.clone();
+let isDark = true;
+const currentBg    = themes.night.bg.clone();
+const currentCrack = themes.night.crack.clone();
 
 /* ── Renderer ── */
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
@@ -277,20 +277,23 @@ const fallbackColors = [
   [0.78,0.72,0.60,1],[0.54,0.65,0.74,1],[0.63,0.70,0.56,1],
   [0.74,0.58,0.52,1],[0.58,0.54,0.72,1],[0.70,0.68,0.60,1]
 ];
-IMAGE_SRCS.forEach((src, i) => {
-  if (i >= N_SLOTS || !src) return;
-  loader.load(src, (tex) => {
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
-    mainUniforms[texNames[i]].value = tex;
-    slotActive[i] = 1.0;
-    mainUniforms.uSlotActive.value = new Float32Array(slotActive);
-  }, undefined, () => {
-    mainUniforms[texNames[i]].value = makePlaceholderTex(fallbackColors[i]);
-    slotActive[i] = 1.0;
-    mainUniforms.uSlotActive.value = new Float32Array(slotActive);
+// Su mobile (touch) non carichiamo le immagini — solo voronoi
+if (!COARSE) {
+  IMAGE_SRCS.forEach((src, i) => {
+    if (i >= N_SLOTS || !src) return;
+    loader.load(src, (tex) => {
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+      mainUniforms[texNames[i]].value = tex;
+      slotActive[i] = 1.0;
+      mainUniforms.uSlotActive.value = new Float32Array(slotActive);
+    }, undefined, () => {
+      mainUniforms[texNames[i]].value = makePlaceholderTex(fallbackColors[i]);
+      slotActive[i] = 1.0;
+      mainUniforms.uSlotActive.value = new Float32Array(slotActive);
+    });
   });
-});
+}
 
 /* ── Resize + celle responsive ── */
 let rtA, rtB, trailW, trailH;
@@ -355,7 +358,7 @@ document.querySelectorAll("button, a, [role='button']").forEach(el => {
 
 toggleBtn.addEventListener("click", () => {
   isDark = !isDark;
-  document.body.classList.toggle("dark-mode", isDark);
+  document.body.classList.toggle("light-mode", !isDark);
 });
 
 /* ── Loop ── */
