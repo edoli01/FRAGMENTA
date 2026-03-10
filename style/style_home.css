@@ -2,14 +2,14 @@
 
 /* ── Variabili ── */
 :root {
-  --bg-color: #F7F7F7;
-  --text-color: #1A1A1A;
-  --accent-color: #464646;
-}
-body.dark-mode {
   --bg-color: #1A1A1A;
   --text-color: #EBEBEB;
   --accent-color: #a1a1a1;
+}
+body.light-mode {
+  --bg-color: #F7F7F7;
+  --text-color: #1A1A1A;
+  --accent-color: #464646;
 }
 
 /* ── Base ── */
@@ -85,9 +85,10 @@ body[data-page="2"] #section2 { opacity: 1; transform: translateY(0); }
   width: clamp(320px, 55vw, 700px);
   height: auto;
   margin-bottom: 15px;
+  filter: invert(1);
   transition: filter 0.5s ease;
 }
-body.dark-mode .main-logo { filter: invert(1); }
+body.light-mode .main-logo { filter: invert(0); }
 
 .subtitle {
   font-weight: 500;
@@ -159,10 +160,10 @@ body.dark-mode .main-logo { filter: invert(1); }
   transition: opacity 0.4s ease, transform 0.4s ease;
   user-select: none;
 }
-.icon-sun  { opacity: 1; transform: rotate(0deg); }
-.icon-moon { opacity: 0; transform: rotate(-90deg); }
-body.dark-mode .icon-sun  { opacity: 0; transform: rotate(90deg); }
-body.dark-mode .icon-moon { opacity: 1; transform: rotate(0deg); }
+.icon-sun  { opacity: 0; transform: rotate(90deg); }
+.icon-moon { opacity: 1; transform: rotate(0deg); }
+body.light-mode .icon-sun  { opacity: 1; transform: rotate(0deg); }
+body.light-mode .icon-moon { opacity: 0; transform: rotate(-90deg); }
 
 /* Back button — visibile solo su pagina 2 */
 #backBtn {
